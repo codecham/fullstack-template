@@ -1,0 +1,5 @@
+node_modules
+.next
+.env*
+openapi.json
+npm-debug.log*

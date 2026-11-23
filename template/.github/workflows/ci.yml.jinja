@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-{% raw %}${{ github.ref }}{% endraw %}
+  cancel-in-progress: true
+
+# Throwaway values for the CI database and token signing (never used outside CI)
+env:
+  POSTGRES_USER: ci
+  POSTGRES_PASSWORD: ci-password
+  POSTGRES_DB: ci
+  JWT_SECRET_KEY: ci-only-secret-key-at-least-32-characters-long
+
+jobs:
+  api:
+    name: API (lint, types, tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    services:
+      db:
+        image: {% if use_pgvector %}pgvector/pgvector:pg18{% else %}postgres:18-alpine{% endif %}
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci-password
+          POSTGRES_DB: ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ci -d ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy .
+      - run: uv run pytest
+
+  web:
+    name: Web (lint, types, format, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: apps/web/.nvmrc
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - run: npm ci --no-audit --no-fund
+      - name: Check that the API client types are up to date
+        run: |
+          (cd ../api && uv run --locked python -m scripts.export_openapi ../web/openapi.json)
+          npm run api:types
+          git diff --exit-code -- src/lib/api/schema.d.ts || {
+            echo "::error::The API changed: run 'make api-types' and commit src/lib/api/schema.d.ts"
+            exit 1
+          }
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run format:check
+      - run: npm run build
+
+  docker:
+    name: Docker stack (build and start)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: scripts/generate-env.sh
+      - run: docker compose -f compose.yaml up --detach --build --wait
+      - name: Smoke test
+        run: |
+          curl --fail --silent http://localhost:8000/health/db
+          curl --fail --silent --output /dev/null http://localhost:3000/
+      - if: failure()
+        run: docker compose -f compose.yaml logs
+      - if: always()
+        run: docker compose -f compose.yaml down --volumes

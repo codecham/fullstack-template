@@ -1,0 +1,31 @@
+# Development settings, merged automatically by `docker compose up`.
+#
+# Hot reload uses Compose Watch (`make dev`): edited files are copied into the
+# containers instead of bind-mounting your folders. On Docker Desktop for Mac this
+# avoids the file-sharing layer, which can make reloading servers hang or freeze Docker.
+services:
+  api:
+    command: ["fastapi", "dev", "app/main.py", "--host", "0.0.0.0", "--port", "8000"]
+    develop:
+      watch:
+        - action: sync
+          path: ./apps/api/app
+          target: /code/app
+        - action: rebuild
+          path: ./apps/api/uv.lock
+
+  web:
+    build:
+      target: dev
+    develop:
+      watch:
+        - action: sync
+          path: ./apps/web/src
+          target: /app/src
+        - action: sync
+          path: ./apps/web/public
+          target: /app/public
+        - action: rebuild
+          path: ./apps/web/package-lock.json
+        - action: rebuild
+          path: ./apps/web/next.config.ts

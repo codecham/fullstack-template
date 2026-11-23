@@ -1,0 +1,61 @@
+# Git hooks, installed by `make setup` (or `make hooks`).
+# Fast checks run on every commit; slower type checks run before each push.
+# Run them all by hand: uvx pre-commit run --all-files
+default_install_hook_types: [pre-commit, pre-push]
+
+repos:
+  # --- Whole repository ---
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+        exclude: ^apps/web/tsconfig\.json$ # tsconfig allows comments
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+      - id: detect-private-key
+
+  # --- API: Ruff (lint + format) ---
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.6
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+        files: ^apps/api/
+      - id: ruff-format
+        files: ^apps/api/
+
+  # --- Hooks that use the project's own tools and versions ---
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy (api)
+        entry: uv run --directory apps/api mypy .
+        language: system
+        files: ^apps/api/.*\.py$
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: prettier
+        name: prettier (web)
+        entry: bash -c 'cd apps/web && npx prettier --write --ignore-unknown "${@#apps/web/}"' --
+        language: system
+        files: ^apps/web/
+        types_or: [javascript, jsx, ts, tsx, json, css, markdown]
+
+      - id: eslint
+        name: eslint (web)
+        entry: bash -c 'cd apps/web && npx eslint --fix --max-warnings=0 "${@#apps/web/}"' --
+        language: system
+        files: ^apps/web/.*\.(js|jsx|ts|tsx|mjs)$
+
+      - id: tsc
+        name: tsc (web)
+        entry: bash -c 'cd apps/web && npm run typecheck'
+        language: system
+        files: ^apps/web/.*\.(ts|tsx)$
+        pass_filenames: false
+        stages: [pre-push]

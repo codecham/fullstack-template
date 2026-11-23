@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(make check)",
+      "Bash(make check-api)",
+      "Bash(make check-web)",
+      "Bash(make fix)",
+      "Bash(make test)",
+      "Bash(make db)",
+      "Bash(make api-types)",
+      "Bash(make migration:*)",
+      "Bash(make ps)",
+      "Bash(uv run:*)",
+      "Bash(npm run:*)",
+      "Bash(docker compose ps:*)",
+      "Bash(docker compose logs:*)"
+    ],
+    "deny": ["Read(./.env)"]
+  }
+}

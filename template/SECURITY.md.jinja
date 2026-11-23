@@ -1,0 +1,20 @@
+# Security policy
+
+## Reporting a vulnerability
+
+Please do not open a public issue for security problems. Email **{{ author_email }}** with a description, the steps to reproduce and the impact. You will get an answer within a few days.
+
+## Built-in protections
+
+- Passwords are hashed with Argon2; failed logins take the same time whether the account exists or not.
+- Access tokens are signed JWTs with an expiry; the signing key is generated per environment and must be at least 32 characters.
+- In the browser, the token lives in an httpOnly, SameSite=Lax cookie (Secure in production), unreadable by JavaScript.
+- Secrets are only read from the environment; `.env` is never committed and `make setup` generates new random secrets.
+- Containers run as non-root users and ports are published on `127.0.0.1` only.
+- Security headers (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`) on every page.
+
+## Not included (add them before going to production if you need them)
+
+- Rate limiting on login and sign-up (for example at the reverse proxy).
+- Email verification and password reset.
+- Token revocation (logging out deletes the cookie; the token itself stays valid until it expires).

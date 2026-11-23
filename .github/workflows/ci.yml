@@ -1,0 +1,65 @@
+# Template CI: generate a project from the template and run its whole toolchain.
+name: Template CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  generate-and-check:
+    name: Generate (pgvector=${{ matrix.use_pgvector }}) and check
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        use_pgvector: [false, true]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: template/apps/web/.nvmrc
+
+      - name: Generate a project
+        run: |
+          uvx copier copy --trust --defaults --skip-tasks --vcs-ref HEAD \
+            --data project_name="CI App" \
+            --data use_pgvector=${{ matrix.use_pgvector }} \
+            . "$RUNNER_TEMP/ci-app"
+
+      - name: Install
+        working-directory: ${{ runner.temp }}/ci-app
+        run: |
+          git init --quiet && git add --all
+          scripts/generate-env.sh
+          (cd apps/api && uv sync --locked)
+          (cd apps/web && npm ci --no-audit --no-fund)
+
+      - name: Pre-commit hooks pass on the generated files
+        working-directory: ${{ runner.temp }}/ci-app
+        run: |
+          uvx pre-commit run --all-files
+          uvx pre-commit run --all-files --hook-stage pre-push
+
+      - name: make check (lint, types, tests)
+        working-directory: ${{ runner.temp }}/ci-app
+        run: make check
+
+      - name: Generated API types are up to date
+        working-directory: ${{ runner.temp }}/ci-app
+        run: make api-types && git diff --exit-code
+
+      - name: Production-like stack starts and answers
+        working-directory: ${{ runner.temp }}/ci-app
+        run: |
+          make prod
+          curl --fail --silent http://localhost:8000/health/db
+          curl --fail --silent --output /dev/null http://localhost:3000/
+
+      - if: failure()
+        working-directory: ${{ runner.temp }}/ci-app
+        run: docker compose logs

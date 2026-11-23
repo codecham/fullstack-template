@@ -1,0 +1,22 @@
+# Dependencies
+/node_modules
+
+# Next.js build output
+/.next/
+/out/
+/build
+next-env.d.ts
+*.tsbuildinfo
+
+# Local env files (only the example is committed)
+.env*
+!.env.example
+
+# Generated from the API by `make api-types` (the generated schema.d.ts is committed)
+/openapi.json
+
+# Misc
+/coverage
+.DS_Store
+*.pem
+npm-debug.log*
