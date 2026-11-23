@@ -49,6 +49,12 @@ jobs:
         working-directory: ${{ runner.temp }}/ci-app
         run: make check
 
+      - name: Pages render without errors in next dev (logged out and in)
+        working-directory: ${{ runner.temp }}/ci-app
+        run: |
+          docker compose up --detach --build --wait api
+          "$GITHUB_WORKSPACE/.github/scripts/check-dev-render.sh"
+
       - name: Generated API types are up to date
         working-directory: ${{ runner.temp }}/ci-app
         run: make api-types && git diff --exit-code

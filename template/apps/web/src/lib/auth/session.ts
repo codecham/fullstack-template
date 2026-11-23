@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 import { cache } from "react";
 
 import { api } from "@/lib/api/client";
@@ -35,6 +36,8 @@ export async function deleteSession() {
  * can call it during one request while the API is only asked once.
  */
 export const getCurrentUser = cache(async (): Promise<User | null> => {
+  // Always render at request time: the user and the API call must never be prerendered
+  await connection();
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) {

@@ -39,7 +39,7 @@ Conventions:
 ## Web (`apps/web`)
 
 - **Next.js 16 differs from older versions** (e.g. `proxy.ts` instead of middleware, Cache Components). Before writing Next.js code, read the relevant guide in `apps/web/node_modules/next/dist/docs/` (see `apps/web/AGENTS.md`).
-- App Router with Cache Components: anything that reads cookies or calls the API per request must render inside a `<Suspense>` boundary.
+- App Router with Cache Components: anything that reads cookies or calls the API per request must render inside a `<Suspense>` boundary and start with `await connection()` (from `next/server`), otherwise `next dev` reports prerender errors such as "unstable value `Date.now()`".
 - All API calls happen on the server, through the typed client in `src/lib/api/client.ts` (`import "server-only"`). The access token lives in an httpOnly cookie handled by `src/lib/auth/session.ts`; never expose it to client components.
 - Mutations use server actions (`"use server"`), forms use `useActionState`.
 - `src/lib/api/schema.d.ts` is generated: never edit it by hand, run `make api-types`.
