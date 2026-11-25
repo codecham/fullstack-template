@@ -10,7 +10,7 @@ template/       the files of a generated project
 .github/        CI of the template itself
 ```
 
-Keep as many files as possible free of Jinja: plain files can be linted, type checked and opened by your editor. Put project-specific values in `.env.example.jinja`, `compose.yaml.jinja` or `apps/web/src/lib/site.ts.jinja` rather than in source code.
+Keep as many files as possible free of Jinja: plain files can be linted, type checked and opened by your editor. Put project-specific values in `.env.example.jinja`, `compose.yaml.jinja` or `apps/web/src/lib/site.json.jinja` (JSON, so Prettier accepts any value length) rather than in source code.
 
 ## Testing a change
 

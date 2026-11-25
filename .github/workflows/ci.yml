@@ -28,6 +28,7 @@ jobs:
         run: |
           uvx copier copy --trust --defaults --skip-tasks --vcs-ref HEAD \
             --data project_name="CI App" \
+            --data description="A deliberately long description, longer than the eighty characters Prettier allows on one line, with \"quotes\" and accents: café" \
             --data use_pgvector=${{ matrix.use_pgvector }} \
             . "$RUNNER_TEMP/ci-app"
 
